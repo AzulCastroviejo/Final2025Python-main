@@ -77,7 +77,7 @@ class OrderService(BaseServiceImpl):
 
         return super().save(schema)
 
-        raise
+
 
     def update(self, id_key: int, schema: OrderSchema) -> OrderSchema:
         """

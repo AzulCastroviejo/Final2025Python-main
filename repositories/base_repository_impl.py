@@ -5,7 +5,7 @@ import logging
 from typing import Type, List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import select
-
+from sqlalchemy.inspection import inspect
 from models.base_model import BaseModel
 from repositories.base_repository import BaseRepository
 from schemas.base_schema import BaseSchema
@@ -299,7 +299,10 @@ class BaseRepositoryImpl(BaseRepository):
         Returns:
             True if entity exists, False otherwise
         """
+        pk = inspect(self.model).primary_key[0]   # obtiene id_key, client_id, uuid, etc.
 
-        return self.session.query(self.model).filter(
-            self.model.id == id
-        ).count() > 0
+        return (
+                self.session.query(self.model)
+                .filter(pk == id)
+                .count() > 0
+        )
