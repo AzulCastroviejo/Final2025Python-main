@@ -30,7 +30,4 @@ class ClientController(BaseControllerImpl):
             service_factory=lambda db: ClientService(db),
             tags=["Clients"]
         )
-<<<<<<< HEAD
 
-=======
->>>>>>> parent of d9526ae (CAMBIOS PARA LOGIN)
