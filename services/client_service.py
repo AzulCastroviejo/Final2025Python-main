@@ -13,8 +13,3 @@ class ClientService(BaseServiceImpl):
             schema=ClientSchema,
             db=db
         )
-
-
-    def login(self, email: str, password: str):
-        return self.repository.find_by_email_and_password(email, password)
-

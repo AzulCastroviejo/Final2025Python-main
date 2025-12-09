@@ -1,11 +1,8 @@
 """Client controller with proper dependency injection."""
-
-from fastapi import APIRouter, Depends
 from controllers.base_controller_impl import BaseControllerImpl
 from schemas.client_schema import ClientSchema
 from services.client_service import ClientService
-from sqlalchemy.orm import Session
-from config.database import get_db
+
 
 
 
@@ -33,4 +30,7 @@ class ClientController(BaseControllerImpl):
             service_factory=lambda db: ClientService(db),
             tags=["Clients"]
         )
+<<<<<<< HEAD
 
+=======
+>>>>>>> parent of d9526ae (CAMBIOS PARA LOGIN)

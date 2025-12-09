@@ -31,7 +31,7 @@ from controllers.product_controller import ProductController
 from controllers.review_controller import ReviewController
 from controllers.health_check import router as health_check_controller
 from repositories.base_repository_impl import InstanceNotFoundError
-from controllers.auth_controller import router as auth_controller
+
 
 def create_fastapi_app() -> FastAPI:
     """
@@ -83,7 +83,6 @@ def create_fastapi_app() -> FastAPI:
     category_controller = CategoryController()
     fastapi_app.include_router(category_controller.router, prefix="/categories")
 
-    fastapi_app.include_router(auth_controller, prefix="/auth")
     fastapi_app.include_router(health_check_controller, prefix="/health_check")
 
     # Add middleware (LIFO order - last added runs first)
@@ -91,18 +90,11 @@ def create_fastapi_app() -> FastAPI:
     fastapi_app.add_middleware(RequestIDMiddleware)
     logger.info("✅ Request ID middleware enabled (distributed tracing)")
 
-# ⭐ CONFIGURACIÓN CRÍTICA DE CORS ⭐
-    origins = [
-        "http://localhost:5173",           # Desarrollo local (Vite)
-        "http://localhost:3000",           # Desarrollo local (alternativo)
-        "https://final2025-front-seven.vercel.app",  # ⚠️ CAMBIAR por tu URL real de Vercel
-        "https://*.vercel.app",            # Todos los subdominios de Vercel (opcional)
-    ]
     # CORS Configuration
     cors_origins = os.getenv("CORS_ORIGINS", "*").split(",")
     fastapi_app.add_middleware(
         CORSMiddleware,
-        allow_origins=origins,
+        allow_origins=cors_origins if cors_origins != ["*"] else ["*"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
