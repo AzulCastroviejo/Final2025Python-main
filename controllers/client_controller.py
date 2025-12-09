@@ -7,6 +7,18 @@ from services.client_service import ClientService
 from sqlalchemy.orm import Session
 from config.database import get_db
 
+
+
+client_extra_router = APIRouter(prefix="/clients", tags=["Clients"])
+
+@client_extra_router.get("/login")
+def client_login(email: str, password: str, db: Session = Depends(get_db)):
+    service = ClientService(db)
+    user = service.login(email, password)
+    if not user:
+        return None
+    return user
+
 class ClientController(BaseControllerImpl):
     """Controller for Client entity with CRUD operations."""
 
@@ -22,8 +34,3 @@ class ClientController(BaseControllerImpl):
             tags=["Clients"]
         )
 
-    @self.router.get("/login")
-    def login(email: str, password: str, db: Session = Depends(get_db)):
-        service = ClientService(db)
-        user = service.login(email, password)
-        return user

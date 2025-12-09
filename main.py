@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 from controllers.address_controller import AddressController
 from controllers.bill_controller import BillController
 from controllers.category_controller import CategoryController
-from controllers.client_controller import ClientController
+from controllers.client_controller import ClientController , client_extra_router
 from controllers.order_controller import OrderController
 from controllers.order_detail_controller import OrderDetailController
 from controllers.product_controller import ProductController
@@ -60,6 +60,7 @@ def create_fastapi_app() -> FastAPI:
 
     client_controller = ClientController()
     fastapi_app.include_router(client_controller.router, prefix="/clients")
+    fastapi_app.include_router(client_extra_router)
 
     order_controller = OrderController()
     fastapi_app.include_router(order_controller.router, prefix="/orders")

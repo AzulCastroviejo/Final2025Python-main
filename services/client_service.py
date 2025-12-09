@@ -15,6 +15,6 @@ class ClientService(BaseServiceImpl):
         )
 
 
-    #def login(self, email: str, password: str):
-     #   return self.repository.find_by_email_and_password(email, password)
+    def login(self, email: str, password: str):
+        return self.repository.find_by_email_and_password(email, password)
 
