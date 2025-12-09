@@ -11,3 +11,11 @@ class ClientRepository(BaseRepositoryImpl):
 
     def __init__(self, db: Session):
         super().__init__(ClientModel, ClientSchema, db)
+
+
+    def find_by_email_and_password(self, email: str, password: str):
+        return (
+            self.db.query(ClientModel)
+            .filter(ClientModel.email == email, ClientModel.password == password)
+            .first()
+        )
