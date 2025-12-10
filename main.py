@@ -58,7 +58,7 @@ def create_fastapi_app() -> FastAPI:
             status_code=status.HTTP_404_NOT_FOUND,
             content={"message": str(exc)},
         )
-    
+
     @fastapi_app.get("/", tags=["Root"])
     def root():
         return {"status": "ok", "message": "API funcionando correctamente 🚀"}
@@ -96,7 +96,10 @@ def create_fastapi_app() -> FastAPI:
     logger.info("✅ Request ID middleware enabled (distributed tracing)")
 
     # CORS Configuration
-    cors_origins = os.getenv("CORS_ORIGINS", "*").split(",")
+    cors_origins = [
+        "https://final2025-front-mswwaba8i-azuls-projects-bab8fcbf.vercel.app",
+        "http://localhost:3000"  # útil si desarrollas localmente
+    ]
     fastapi_app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_origins if cors_origins != ["*"] else ["*"],
