@@ -40,6 +40,7 @@ def create_fastapi_app() -> FastAPI:
     Returns:
         FastAPI: Configured FastAPI application instance
     """
+
     # API metadata
     fastapi_app = FastAPI(
         title="E-commerce REST API",
@@ -57,10 +58,14 @@ def create_fastapi_app() -> FastAPI:
             status_code=status.HTTP_404_NOT_FOUND,
             content={"message": str(exc)},
         )
+    
+    @fastapi_app.get("/", tags=["Root"])
+    def root():
+        return {"status": "ok", "message": "API funcionando correctamente 🚀"}
 
     client_controller = ClientController()
     fastapi_app.include_router(client_controller.router, prefix="/clients")
-    
+
 
     order_controller = OrderController()
     fastapi_app.include_router(order_controller.router, prefix="/orders")
