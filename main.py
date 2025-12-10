@@ -31,7 +31,8 @@ from controllers.product_controller import ProductController
 from controllers.review_controller import ReviewController
 from controllers.health_check import router as health_check_controller
 from repositories.base_repository_impl import InstanceNotFoundError
-
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI
 
 def create_fastapi_app() -> FastAPI:
     """
@@ -96,7 +97,8 @@ def create_fastapi_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=[
             "https://final2025-front-mswwaba8i-azuls-projects-bab8fcbf.vercel.app",
-            "http://localhost:3000",
+            "https://*.vercel.app",  # Todos los deploys de Vercel
+            "http://localhost:5173"
         ],
         allow_credentials=True,
         allow_methods=["*"],
