@@ -92,22 +92,20 @@ def create_fastapi_app() -> FastAPI:
 
     # Add middleware (LIFO order - last added runs first)
     # Request ID middleware runs FIRST (innermost) to capture all logs
-    fastapi_app.add_middleware(RequestIDMiddleware)
-    logger.info("✅ Request ID middleware enabled (distributed tracing)")
-
-    # CORS Configuration
-    cors_origins = [
-        "https://final2025-front-mswwaba8i-azuls-projects-bab8fcbf.vercel.app",
-        "http://localhost:3000"  # útil si desarrollas localmente
-    ]
     fastapi_app.add_middleware(
         CORSMiddleware,
-        allow_origins=cors_origins if cors_origins != ["*"] else ["*"],
+        allow_origins=[
+            "https://final2025-front-mswwaba8i-azuls-projects-bab8fcbf.vercel.app",
+            "http://localhost:3000",
+        ],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["*"],
+
+
     )
-    logger.info(f"✅ CORS enabled for origins: {cors_origins}")
+    logger.info(f"✅ CORS enabled for origins: {CORSMiddleware}")
 
     # Rate limiting: 100 requests per 60 seconds per IP (configurable via env)
     fastapi_app.add_middleware(RateLimiterMiddleware, calls=100, period=60)
