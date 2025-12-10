@@ -95,11 +95,7 @@ def create_fastapi_app() -> FastAPI:
     # Request ID middleware runs FIRST (innermost) to capture all logs
     fastapi_app.add_middleware(
         CORSMiddleware,
-        allow_origins=[
-            "https://final2025-front-mswwaba8i-azuls-projects-bab8fcbf.vercel.app",
-            "https://*.vercel.app",  # Todos los deploys de Vercel
-            "http://localhost:5173"
-        ],
+        allow_origins=["*"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
