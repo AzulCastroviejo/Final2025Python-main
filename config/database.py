@@ -25,7 +25,7 @@ load_dotenv(env_path)
 
 
 # Database configuration - prioritize DATABASE_URL from Render
-DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://proyecto_final_db_djug_user:1x9hjXcQvqJosTXEiJe5oB5HJCAuAQLh@dpg-d4p3rue3jp1c73drkng0-a/proyecto_final_db_djug')
+DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://basedatos_856w_user:hZCyuFvp6qh9dhDZjaoKtqyEAUvthIZH@dpg-d5018shr0fns739v8ru0-a/basedatos_856w')
 
 if DATABASE_URL:
     # Using DATABASE_URL from Render (production)
