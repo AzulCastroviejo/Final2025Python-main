@@ -14,7 +14,7 @@ class CategoryRepository(BaseRepositoryImpl):
 
 
     def find_all(self, skip: int = 0, limit: int = 100):
-            """Get all categories with their products loaded."""
+        """Get all categories with their products loaded."""
         models = (
             self.db.query(self.model)
             .options(joinedload(CategoryModel.products))
