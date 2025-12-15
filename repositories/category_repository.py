@@ -1,5 +1,5 @@
 """Category repository for database operations."""
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from models.category import CategoryModel
 from repositories.base_repository_impl import BaseRepositoryImpl
@@ -10,7 +10,7 @@ class CategoryRepository(BaseRepositoryImpl):
     """Repository for Category entity database operations."""
 
     def __init__(self, db: Session):
-        super().__init__(CategoryModel, CategorySchema, db)
+        super().__init__(model=CategoryModel, schema=CategorySchema, db=db)
 
 
     def find_all(self, skip: int = 0, limit: int = 100):
