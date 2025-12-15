@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Float, DateTime, Enum, Integer, ForeignKey
+from sqlalchemy import Column, Float, DateTime,String, Enum, Integer, ForeignKey
 from sqlalchemy.orm import relationship
 
 from models.base_model import BaseModel
@@ -10,7 +10,7 @@ class OrderModel(BaseModel):
 
     date = Column(DateTime, index=True)
     total = Column(Float)
-    delivery_method = Column(Enum(DeliveryMethod), index=True)
+    delivery_method =Column(String(50), index=True)
     status = Column(Enum(Status), index=True)
     client_id = Column(Integer, ForeignKey('clients.id_key'), index=True)
     bill_id = Column(Integer, ForeignKey('bills.id_key'), index=True)
