@@ -10,7 +10,7 @@ class CategoryRepository(BaseRepositoryImpl):
     """Repository for Category entity database operations."""
 
     def __init__(self, db: Session):
-        super().__init__(model=CategoryModel, schema=CategorySchema, db=db)
+        super().__init__(CategoryModel, CategorySchema, db)
 
 
     def find_all(self, skip: int = 0, limit: int = 100):
