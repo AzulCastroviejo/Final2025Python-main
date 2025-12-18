@@ -16,22 +16,22 @@ class ProductRepository(BaseRepositoryImpl):
     def find_all(self, skip: int = 0, limit: int = 100):
         """Get all products with their categories loaded."""
         models = (
-            self.db.query(self.model)
+            self._session.query(self._model)
             .options(joinedload(ProductModel.category))
             .offset(skip)
             .limit(limit)
             .all()
         )
-        return [self.schema.model_validate(model) for model in models]
+        return [self._schema.model_validate(model) for model in models]
 
     def find_by_id(self, id_key: int):
         """Get a product by ID with category loaded."""
         model = (
-            self.db.query(self.model)
+            self._session.query(self._model)
             .options(joinedload(ProductModel.category))
             .filter(self.model.id_key == id_key)
             .first()
         )
         if model:
-            return self.schema.model_validate(model)
+            return self._schema.model_validate(model)
         return None
