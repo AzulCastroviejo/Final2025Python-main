@@ -1,9 +1,10 @@
 """Product repository for database operations."""
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from models.product import ProductModel
 from repositories.base_repository_impl import BaseRepositoryImpl
 from schemas.product_schema import ProductSchema
+
 
 
 class ProductRepository(BaseRepositoryImpl):
