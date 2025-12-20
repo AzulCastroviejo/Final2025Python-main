@@ -1,4 +1,4 @@
-# schemas/order_schema.py - VERSIÓN CORREGIDA (Indentación arreglada)
+# schemas/order_schema.py - VERSIÓN CORREGIDA
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
@@ -76,4 +76,3 @@ class OrderResponseSchema(BaseModel):
     created_at: Optional[datetime] = None
 
     class Config:
-        from_attributes = True
