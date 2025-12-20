@@ -1,9 +1,8 @@
-# services/order_service.py - VERSIÓN MEJORADA Y CORREGIDA
+# services/order_service.py - VERSIÓN MEJORADA CON AUTO-CREACIÓN
 from sqlalchemy.orm import Session
 from models.order import OrderModel
 from models.client import ClientModel
 from models.bill import BillModel
-from models.order_detail import OrderDetailModel
 from schemas.order_schema import OrderSchema
 from repositories.client_repository import ClientRepository
 from repositories.bill_repository import BillRepository
@@ -13,10 +12,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-
 class OrderService:
-    """Servicio para gestionar órdenes con creación automática de cliente y factura"""
-    
     def __init__(self, db: Session):
         self.db = db
         self.order_repository = OrderRepository(db)
@@ -29,7 +25,6 @@ class OrderService:
         1. Busca o crea el cliente
         2. Crea la factura
         3. Crea la orden con todos los campos requeridos
-        4. Crea los order_details
         """
         try:
             # PASO 1: Buscar o crear el cliente
@@ -47,7 +42,7 @@ class OrderService:
                 else:
                     # Crear nuevo cliente
                     # Dividir el nombre completo
-                    name_parts = order_data.client_name.strip().split(' ', 1)
+                    name_parts = order_data.client_name.split(' ', 1)
                     first_name = name_parts[0]
                     last_name = name_parts[1] if len(name_parts) > 1 else first_name
                     
@@ -88,23 +83,24 @@ class OrderService:
                 delivery_method=order_data.delivery_method or 3,  # Default: HOME_DELIVERY
                 status=1,  # PENDING
                 client_id=client_id,
-                bill_id=bill_id
+                bill_id=bill_id,
+                # Campos adicionales que tienes en tu modelo
+                client_name=order_data.client_name,
+                client_email=order_data.client_email,
+                client_phone=order_data.client_phone,
+                shipping_address=order_data.shipping_address,
+                payment_method=order_data.payment_method,
+                subtotal=order_data.subtotal,
+                tax=order_data.tax,
+                shipping_cost=order_data.shipping_cost
             )
-            
-            # Si tu modelo OrderModel tiene estos campos adicionales, descoméntalos:
-            # new_order.client_name = order_data.client_name
-            # new_order.client_email = order_data.client_email
-            # new_order.client_phone = order_data.client_phone
-            # new_order.shipping_address = order_data.shipping_address
-            # new_order.payment_method = order_data.payment_method
-            # new_order.subtotal = order_data.subtotal
-            # new_order.tax = order_data.tax
-            # new_order.shipping_cost = order_data.shipping_cost
             
             self.db.add(new_order)
             self.db.flush()
             
-            # PASO 4: Crear los items de la orden (order_details)
+            # PASO 4: Crear los items de la orden
+            from models.order_detail import OrderDetailModel
+            
             for item in order_data.items:
                 order_detail = OrderDetailModel(
                     quantity=item.quantity,
@@ -114,49 +110,30 @@ class OrderService:
                 )
                 self.db.add(order_detail)
             
-            # Hacer commit de todo junto (transacción completa)
+            # Hacer commit de todo junto
             self.db.commit()
             self.db.refresh(new_order)
             
-            logger.info(f"✅ Orden creada exitosamente: {new_order.id_key}")
+            logger.info(f"Orden creada exitosamente: {new_order.id_key}")
             return new_order
 
         except Exception as e:
             self.db.rollback()
-            logger.error(f"❌ Error creando orden: {str(e)}")
+            logger.error(f"Error creando orden: {str(e)}")
             raise e
 
     def get_all_orders(self, skip: int = 0, limit: int = 100):
         """Obtener todas las órdenes con paginación"""
-        try:
-            return self.order_repository.find_all(skip=skip, limit=limit)
-        except Exception as e:
-            logger.error(f"Error obteniendo órdenes: {str(e)}")
-            raise e
+        return self.order_repository.find_all(skip=skip, limit=limit)
 
     def get_order_by_id(self, order_id: int):
         """Obtener orden por ID"""
-        try:
-            return self.order_repository.find(order_id)
-        except Exception as e:
-            logger.error(f"Error obteniendo orden {order_id}: {str(e)}")
-            raise e
+        return self.order_repository.find(order_id)
 
     def update_order(self, order_id: int, order_data: OrderSchema):
         """Actualizar una orden"""
-        try:
-            return self.order_repository.update(
-                order_id, 
-                order_data.model_dump(exclude_unset=True)
-            )
-        except Exception as e:
-            logger.error(f"Error actualizando orden {order_id}: {str(e)}")
-            raise e
+        return self.order_repository.update(order_id, order_data.model_dump(exclude_unset=True))
 
     def delete_order(self, order_id: int):
         """Eliminar una orden"""
-        try:
-            return self.order_repository.remove(order_id)
-        except Exception as e:
-            logger.error(f"Error eliminando orden {order_id}: {str(e)}")
-            raise e
+        return self.order_repository.remove(order_id)
