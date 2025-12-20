@@ -1,4 +1,4 @@
-# services/order_service.py - VERSIÓN CORREGIDA PARA TU MODELO
+# services/order_service.py - VERSIÓN MEJORADA Y CORREGIDA
 from sqlalchemy.orm import Session
 from models.order import OrderModel
 from models.client import ClientModel
@@ -81,31 +81,30 @@ class OrderService:
                 bill_id = new_bill.id_key
                 logger.info(f"Nueva factura creada: {bill_id} ({bill_number})")
 
-            # PASO 3: Mapear delivery_method de número a string
-            delivery_method_map = {
-                1: "drive_thru",
-                2: "on_hand",
-                3: "home_delivery"
-            }
-            delivery_method_str = delivery_method_map.get(
-                order_data.delivery_method, 
-                "home_delivery"  # default
-            )
-
-            # PASO 4: Crear la orden (SOLO con los campos que existen en tu modelo)
+            # PASO 3: Crear la orden con todos los campos
             new_order = OrderModel(
                 date=datetime.now(),
                 total=order_data.total,
-                delivery_method=delivery_method_str,  # String, no Integer
-                status=1,  # PENDING (si Status es Enum con valor 1)
+                delivery_method=order_data.delivery_method or 3,  # Default: HOME_DELIVERY
+                status=1,  # PENDING
                 client_id=client_id,
                 bill_id=bill_id
             )
             
+            # Si tu modelo OrderModel tiene estos campos adicionales, descoméntalos:
+            # new_order.client_name = order_data.client_name
+            # new_order.client_email = order_data.client_email
+            # new_order.client_phone = order_data.client_phone
+            # new_order.shipping_address = order_data.shipping_address
+            # new_order.payment_method = order_data.payment_method
+            # new_order.subtotal = order_data.subtotal
+            # new_order.tax = order_data.tax
+            # new_order.shipping_cost = order_data.shipping_cost
+            
             self.db.add(new_order)
             self.db.flush()
             
-            # PASO 5: Crear los items de la orden (order_details)
+            # PASO 4: Crear los items de la orden (order_details)
             for item in order_data.items:
                 order_detail = OrderDetailModel(
                     quantity=item.quantity,
