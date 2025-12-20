@@ -6,15 +6,15 @@ from services.client_service import ClientService
 
 
 
-#client_extra_router = APIRouter(prefix="/clients", tags=["Clients"])
+client_extra_router = APIRouter(prefix="/clients", tags=["Clients"])
 
-#@client_extra_router.get("/login")
-#def client_login(email: str, password: str, db: Session = Depends(get_db)):
- #   service = ClientService(db)
-  #  user = service.login(email, password)
-   # if not user:
-    #    return None
-    #return user
+@client_extra_router.get("/login")
+def client_login(email: str, password: str, db: Session = Depends(get_db)):
+    service = ClientService(db)
+    user = service.login(email, password)
+    if not user:
+        return None
+    return user
 
 class ClientController(BaseControllerImpl):
     """Controller for Client entity with CRUD operations."""
