@@ -1,6 +1,6 @@
-# schemas/order_schema.py - VERSIÓN FINAL CORREGIDA
-from pydantic import BaseModel, Field
-from typing import Optional, List
+# schemas/order_schema.py - VERSIÓN FINAL AJUSTADA A TU MODELO
+from pydantic import BaseModel, Field, field_validator
+from typing import Optional, List, Union
 from datetime import datetime
 
 
@@ -32,11 +32,10 @@ class OrderSchema(BaseModel):
     payment_method: str = Field(..., description="Método de pago: card o cash")
     
     # Campos que ahora son OPCIONALES
-    delivery_method: Optional[int] = Field(
+    # delivery_method acepta int (1,2,3) o string ("drive_thru", "on_hand", "home_delivery")
+    delivery_method: Optional[Union[int, str]] = Field(
         default=3, 
-        ge=1, 
-        le=3,
-        description="Método de entrega: 1=DRIVE_THRU, 2=ON_HAND, 3=HOME_DELIVERY"
+        description="Método de entrega: 1=drive_thru, 2=on_hand, 3=home_delivery"
     )
     client_id: Optional[int] = Field(default=None, description="ID del cliente (se crea si no existe)")
     bill_id: Optional[int] = Field(default=None, description="ID de la factura (se crea si no existe)")
@@ -51,6 +50,20 @@ class OrderSchema(BaseModel):
     total: float = Field(..., ge=0, description="Total de la orden")
     status: str = Field(default="pending", description="Estado de la orden")
 
+    @field_validator('delivery_method')
+    @classmethod
+    def validate_delivery_method(cls, v):
+        """Validar que delivery_method sea válido"""
+        valid_ints = [1, 2, 3]
+        valid_strings = ["drive_thru", "on_hand", "home_delivery"]
+        
+        if isinstance(v, int) and v not in valid_ints:
+            raise ValueError(f"delivery_method debe ser 1, 2 o 3. Recibido: {v}")
+        elif isinstance(v, str) and v not in valid_strings:
+            raise ValueError(f"delivery_method debe ser 'drive_thru', 'on_hand' o 'home_delivery'. Recibido: {v}")
+        
+        return v
+
     model_config = {
         "from_attributes": True,
         "json_schema_extra": {
@@ -61,8 +74,6 @@ class OrderSchema(BaseModel):
                 "shipping_address": "Calle Falsa 123",
                 "payment_method": "card",
                 "delivery_method": 3,
-                "client_id": 1,
-                "bill_id": 1,
                 "items": [
                     {
                         "product_id": 1,
@@ -83,20 +94,12 @@ class OrderSchema(BaseModel):
 class OrderResponseSchema(BaseModel):
     """Schema para respuestas de órdenes"""
     id_key: int
-    client_name: str
-    client_email: str
-    client_phone: str
-    shipping_address: str
-    payment_method: str
-    delivery_method: Optional[int] = None
+    date: Optional[datetime] = None
+    total: float
+    delivery_method: Optional[str] = None
+    status: Optional[int] = None
     client_id: Optional[int] = None
     bill_id: Optional[int] = None
-    subtotal: float
-    tax: float
-    shipping_cost: float
-    total: float
-    status: str
-    created_at: Optional[datetime] = None
 
     model_config = {
         "from_attributes": True
