@@ -1,39 +1,59 @@
-# schemas/order_schema.py - VERSIÓN CORREGIDA (Indentación arreglada)
+# schemas/order_schema.py - VERSIÓN FINAL CORREGIDA
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
 
+
 class OrderItemSchema(BaseModel):
-    product_id: int
-    quantity: int = Field(gt=0)
-    price: float = Field(gt=0)
+    """Schema para items individuales de la orden"""
+    product_id: int = Field(..., description="ID del producto")
+    quantity: int = Field(..., gt=0, description="Cantidad del producto")
+    price: float = Field(..., gt=0, description="Precio unitario del producto")
+    
+    model_config = {
+        "from_attributes": True,
+        "json_schema_extra": {
+            "example": {
+                "product_id": 1,
+                "quantity": 2,
+                "price": 1500000
+            }
+        }
+    }
+
 
 class OrderSchema(BaseModel):
+    """Schema para crear/actualizar órdenes"""
     # Datos del cliente (como los envías desde el frontend)
-    client_name: str
-    client_email: str
-    client_phone: str
-    shipping_address: str
-    payment_method: str
+    client_name: str = Field(..., min_length=1, description="Nombre completo del cliente")
+    client_email: str = Field(..., description="Email del cliente")
+    client_phone: str = Field(..., description="Teléfono del cliente")
+    shipping_address: str = Field(..., min_length=1, description="Dirección de envío")
+    payment_method: str = Field(..., description="Método de pago: card o cash")
     
     # Campos que ahora son OPCIONALES
-    delivery_method: Optional[int] = Field(default=3, description="1=DRIVE_THRU, 2=ON_HAND, 3=HOME_DELIVERY")
-    client_id: Optional[int] = None
-    bill_id: Optional[int] = None
+    delivery_method: Optional[int] = Field(
+        default=3, 
+        ge=1, 
+        le=3,
+        description="Método de entrega: 1=DRIVE_THRU, 2=ON_HAND, 3=HOME_DELIVERY"
+    )
+    client_id: Optional[int] = Field(default=None, description="ID del cliente (se crea si no existe)")
+    bill_id: Optional[int] = Field(default=None, description="ID de la factura (se crea si no existe)")
     
     # Items de la orden
-    items: List[OrderItemSchema]
+    items: List[OrderItemSchema] = Field(..., min_length=1, description="Lista de productos en la orden")
     
     # Totales
-    subtotal: float = Field(ge=0)
-    tax: float = Field(ge=0)
-    shipping_cost: float = Field(ge=0)
-    total: float = Field(ge=0)
-    status: str = Field(default="pending")
+    subtotal: float = Field(..., ge=0, description="Subtotal de la orden")
+    tax: float = Field(..., ge=0, description="Impuestos")
+    shipping_cost: float = Field(..., ge=0, description="Costo de envío")
+    total: float = Field(..., ge=0, description="Total de la orden")
+    status: str = Field(default="pending", description="Estado de la orden")
 
-    class Config:
-        from_attributes = True
-        json_schema_extra = {
+    model_config = {
+        "from_attributes": True,
+        "json_schema_extra": {
             "example": {
                 "client_name": "Juan Pérez",
                 "client_email": "juan@example.com",
@@ -57,17 +77,20 @@ class OrderSchema(BaseModel):
                 "status": "pending"
             }
         }
+    }
+
 
 class OrderResponseSchema(BaseModel):
+    """Schema para respuestas de órdenes"""
     id_key: int
     client_name: str
     client_email: str
     client_phone: str
     shipping_address: str
     payment_method: str
-    delivery_method: Optional[int]
-    client_id: Optional[int]
-    bill_id: Optional[int]
+    delivery_method: Optional[int] = None
+    client_id: Optional[int] = None
+    bill_id: Optional[int] = None
     subtotal: float
     tax: float
     shipping_cost: float
@@ -75,5 +98,6 @@ class OrderResponseSchema(BaseModel):
     status: str
     created_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {
+        "from_attributes": True
+    }
