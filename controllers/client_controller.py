@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from controllers.base_controller_impl import BaseControllerImpl
 from schemas.client_schema import ClientSchema
 from services.client_service import ClientService
-
+from database import get_db
 
 
 
