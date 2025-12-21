@@ -33,7 +33,7 @@ from controllers.health_check import router as health_check_controller
 from repositories.base_repository_impl import InstanceNotFoundError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
-from database import get_db
+from config.database import get_db
 
 def create_fastapi_app() -> FastAPI:
     """
