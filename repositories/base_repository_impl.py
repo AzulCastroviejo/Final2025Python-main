@@ -1,5 +1,5 @@
 """
-BaseRepository implementation with best practices and sanitized logging
+BaseRepository implementation with corrected return types and loading options.
 """
 import logging
 from typing import Type, List, Optional
@@ -9,58 +9,59 @@ from sqlalchemy import select
 from models.base_model import BaseModel
 from repositories.base_repository import BaseRepository
 from schemas.base_schema import BaseSchema
-from utils.logging_utils import log_repository_error, create_user_safe_error, get_sanitized_logger
+from utils.logging_utils import get_sanitized_logger
 
 
 class InstanceNotFoundError(Exception):
-    """
-    InstanceNotFoundError is raised when a record is not found
-    """
+    """Raised when a database record is not found."""
     pass
 
 
 class BaseRepositoryImpl(BaseRepository):
     """
-    Base Repository Implementation with proper error handling and SQLAlchemy 2.0 patterns
+    Generic repository implementation with SQLAlchemy 2.0 patterns.
+    This layer is responsible for database interactions and returns ORM models.
+    The conversion to Pydantic schemas is handled by the service layer.
     """
 
     def __init__(self, model: Type[BaseModel], schema: Type[BaseSchema], db: Session):
         self._model = model
         self._schema = schema
         self._session = db
-        self.logger = get_sanitized_logger(__name__)  # P11: Sanitized logging
+        self.logger = get_sanitized_logger(__name__)
 
     @property
     def session(self) -> Session:
-        """Get the database session"""
         return self._session
 
     @property
     def model(self) -> Type[BaseModel]:
-        """Get the SQLAlchemy model class"""
         return self._model
 
     @property
     def schema(self) -> Type[BaseSchema]:
-        """Get the Pydantic schema class"""
         return self._schema
 
-    def find(self, id_key: int) -> BaseSchema:
+    def find(self, id_key: int, load_options: Optional[List] = None) -> BaseModel:
         """
-        Find a single record by ID
+        Find a single record by ID, with optional relationship loading.
 
         Args:
-            id_key: The primary key value
+            id_key: The primary key of the record.
+            load_options: A list of SQLAlchemy loader options for eager loading.
 
         Returns:
-            The schema instance
+            The ORM model instance.
 
         Raises:
-            InstanceNotFoundError: If the record is not found
+            InstanceNotFoundError: If the record is not found.
         """
         try:
-            # Use SQLAlchemy 2.0 style query
-            stmt = select(self.model).where(self.model.id_key == id_key)
+            stmt = select(self.model)
+            if load_options:
+                stmt = stmt.options(*load_options)
+            
+            stmt = stmt.where(self.model.id_key == id_key)
             model = self.session.scalars(stmt).first()
 
             if model is None:
@@ -68,222 +69,102 @@ class BaseRepositoryImpl(BaseRepository):
                     f"{self.model.__name__} with id {id_key} not found"
                 )
 
-            return self.schema.model_validate(model)
+            return model  # Return the ORM model, not the schema
         except InstanceNotFoundError:
             raise
         except Exception as e:
             self.logger.error(f"Error finding {self.model.__name__} with id {id_key}: {e}")
             raise
 
-    def find_all(self, skip: int = 0, limit: int = 100) -> List[BaseSchema]:
+    def find_all(self, skip: int = 0, limit: int = 100) -> List[BaseModel]:
         """
-        Find all records with pagination and input validation
-
-        This method validates pagination parameters to prevent DoS attacks
-        and ensure reasonable query performance.
-
-        Args:
-            skip: Number of records to skip (must be >= 0)
-            limit: Maximum number of records to return (must be 1-1000)
-
-        Returns:
-            List of schema instances
-
-        Raises:
-            ValueError: If pagination parameters are invalid
+        Find all records with pagination. Returns ORM models.
         """
-        from config.constants import PaginationConfig, ErrorMessages
-
+        from config.constants import PaginationConfig
         try:
-            # Validate skip parameter
             if skip < 0:
                 raise ValueError("skip parameter must be >= 0")
-
-            # Validate limit parameter
             if limit < PaginationConfig.MIN_LIMIT:
-                raise ValueError(
-                    f"limit parameter must be >= {PaginationConfig.MIN_LIMIT}"
-                )
-
-            # Cap limit at maximum to prevent excessive queries
+                raise ValueError(f"limit must be >= {PaginationConfig.MIN_LIMIT}")
             if limit > PaginationConfig.MAX_LIMIT:
-                self.logger.warning(
-                    f"Limit {limit} exceeds maximum {PaginationConfig.MAX_LIMIT}, "
-                    f"capping to maximum"
-                )
                 limit = PaginationConfig.MAX_LIMIT
 
             stmt = select(self.model).offset(skip).limit(limit)
             models = self.session.scalars(stmt).all()
-            return [self.schema.model_validate(model) for model in models]
-
+            return models  # Return a list of ORM models
         except ValueError:
             raise
         except Exception as e:
             self.logger.error(f"Error finding all {self.model.__name__}: {e}")
             raise
 
-    def save(self, model: BaseModel) -> BaseSchema:
+    def save(self, model: BaseModel) -> BaseModel:
         """
-        Save a new record to the database
-
-        Args:
-            model: The model instance to save
-
-        Returns:
-            The saved schema instance
+        Save a new record. Returns the new ORM model.
         """
         try:
             self.session.add(model)
             self.session.commit()
             self.session.refresh(model)
-            return self.schema.model_validate(model)
+            return model  # Return the ORM model
         except Exception as e:
             self.session.rollback()
             self.logger.error(f"Error saving {self.model.__name__}: {e}")
             raise
 
-    def update(self, id_key: int, changes: dict) -> BaseSchema:
+    def update(self, id_key: int, changes: dict) -> BaseModel:
         """
-        Update an existing record with security validation
-
-        This method validates field names against the model's columns to prevent
-        unauthorized updates to protected attributes or SQLAlchemy internals.
-
-        Args:
-            id_key: The primary key value
-            changes: Dictionary of fields to update
-
-        Returns:
-            The updated schema instance
-
-        Raises:
-            InstanceNotFoundError: If the record is not found
-            ValueError: If trying to update invalid or protected fields
+        Update an existing record. Returns the updated ORM model.
         """
-        # Protected attributes that should never be updated
-        PROTECTED_ATTRIBUTES = {
-            'id_key',  # Primary key
-            '_sa_instance_state',  # SQLAlchemy internal
-            '__class__',  # Python magic attribute
-            '__dict__',  # Python magic attribute
-        }
-
+        PROTECTED_ATTRIBUTES = {'id_key', '_sa_instance_state'}
         try:
-            stmt = select(self.model).where(self.model.id_key == id_key)
-            instance = self.session.scalars(stmt).first()
+            instance = self.find(id_key)
 
-            if instance is None:
-                raise InstanceNotFoundError(
-                    f"{self.model.__name__} with id {id_key} not found"
-                )
-
-            # Get allowed columns from model
             allowed_columns = {col.name for col in self.model.__table__.columns}
-
-            # Validate and update only allowed fields
             for key, value in changes.items():
-                # Skip None values
-                if value is None:
+                if value is None or key.startswith('_') or key in PROTECTED_ATTRIBUTES:
                     continue
-
-                # Check if key starts with underscore (internal attribute)
-                if key.startswith('_'):
-                    self.logger.warning(
-                        f"Attempt to update protected attribute '{key}' blocked"
-                    )
-                    raise ValueError(
-                        f"Cannot update protected attribute: {key}"
-                    )
-
-                # Check against protected list
-                if key in PROTECTED_ATTRIBUTES:
-                    self.logger.warning(
-                        f"Attempt to update protected attribute '{key}' blocked"
-                    )
-                    raise ValueError(
-                        f"Cannot update protected attribute: {key}"
-                    )
-
-                # Validate field exists in model
                 if key not in allowed_columns:
-                    self.logger.warning(
-                        f"Attempt to update non-existent field '{key}' blocked"
-                    )
-                    raise ValueError(
-                        f"Invalid field for {self.model.__name__}: {key}"
-                    )
-
-                # Validate attribute exists on instance
-                if not hasattr(instance, key):
-                    raise ValueError(
-                        f"Field {key} not found in {self.model.__name__}"
-                    )
-
-                # All validations passed - safe to update
+                    raise ValueError(f"Invalid field for {self.model.__name__}: {key}")
                 setattr(instance, key, value)
 
             self.session.commit()
             self.session.refresh(instance)
-            return self.schema.model_validate(instance)
-
-        except InstanceNotFoundError:
-            raise
-        except ValueError:
+            return instance  # Return the ORM model
+        except (InstanceNotFoundError, ValueError) as err:
             self.session.rollback()
+            self.logger.error(f"Error updating {self.model.__name__} {id_key}: {err}")
             raise
         except Exception as e:
             self.session.rollback()
-            self.logger.error(f"Error updating {self.model.__name__} with id {id_key}: {e}")
+            self.logger.error(f"Error updating {self.model.__name__} {id_key}: {e}")
             raise
 
     def remove(self, id_key: int) -> None:
         """
-        Delete a record from the database
-
-        Args:
-            id_key: The primary key value
-
-        Raises:
-            InstanceNotFoundError: If the record is not found
+        Delete a record from the database.
         """
         try:
-            stmt = select(self.model).where(self.model.id_key == id_key)
-            model = self.session.scalars(stmt).first()
-
-            if model is None:
-                raise InstanceNotFoundError(
-                    f"{self.model.__name__} with id {id_key} not found"
-                )
-
+            model = self.find(id_key)
             self.session.delete(model)
             self.session.commit()
         except InstanceNotFoundError:
             raise
         except Exception as e:
             self.session.rollback()
-            self.logger.error(f"Error deleting {self.model.__name__} with id {id_key}: {e}")
+            self.logger.error(f"Error deleting {self.model.__name__} {id_key}: {e}")
             raise
 
-    def save_all(self, models: List[BaseModel]) -> List[BaseSchema]:
+    def save_all(self, models: List[BaseModel]) -> List[BaseModel]:
         """
-        Save multiple records in a single transaction
-
-        Args:
-            models: List of model instances to save
-
-        Returns:
-            List of saved schema instances
+        Save multiple records. Returns a list of the new ORM models.
         """
         try:
             self.session.add_all(models)
             self.session.commit()
-
-            # Refresh all models
             for model in models:
                 self.session.refresh(model)
-
-            return [self.schema.model_validate(model) for model in models]
+            return models  # Return a list of ORM models
         except Exception as e:
             self.session.rollback()
             self.logger.error(f"Error saving multiple {self.model.__name__}: {e}")
