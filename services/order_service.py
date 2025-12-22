@@ -1,9 +1,10 @@
 """OrderService with foreign key validation and business logic."""
 import logging
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 from datetime import datetime
 
 from models.order import OrderModel
+from models.order_detail import OrderDetailModel
 from repositories.order_repository import OrderRepository
 from repositories.client_repository import ClientRepository
 from repositories.bill_repository import BillRepository
@@ -27,6 +28,35 @@ class OrderService(BaseServiceImpl):
         )
         self._client_repository = ClientRepository(db)
         self._bill_repository = BillRepository(db)
+        
+    def get_one(self, id_key: int) -> OrderSchema:
+        """
+        Get a single order by its ID, including related order details and products.
+
+        Args:
+            id_key: The ID of the order.
+
+        Returns:
+            The order schema with nested details.
+        """
+        logger.info(f"Fetching order {id_key} with details and products")
+        
+        # Options to load relationships:
+        # 1. Load the 'order_details' relationship of the Order.
+        # 2. Then, for each item in 'order_details', load its 'product' relationship.
+       
+        load_options = [
+            selectinload(OrderModel.order_details).joinedload(OrderDetailModel.product)
+        ]
+        
+        # Use the generic find method from the repository but pass the loading options
+        model = self._repository.find(id_key, load_options=load_options)
+        
+         # Pydantic v2 uses `from_attributes` to load from ORM models
+        return self._schema.from_attributes(model)
+
+        
+
 
     def save(self, schema: OrderSchema) -> OrderSchema:
         """
