@@ -43,7 +43,8 @@ class ClientService(BaseServiceImpl):
         if existing_client_model:
             logger.info(f"Client with email {schema.email} already exists. Returning existing client.")
             # Convert the existing ORM model to a Pydantic schema before returning
-            return self._schema.from_attributes(existing_client_model)
+            
+            return self._schema.model_validate(existing_client_model)
         
         logger.info(f"No client found with email {schema.email}. Creating a new client.")
         # If not found, use the generic save method from the base class to create a new one
