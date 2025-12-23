@@ -5,7 +5,7 @@ from pydantic import Field
 from schemas.base_schema import BaseSchema
 
 if TYPE_CHECKING:
-    from schemas.order_schema import OrderSchema
+    #from schemas.order_schema import OrderSchema
     from schemas.product_schema import ProductSchema
 
 
@@ -34,5 +34,5 @@ class OrderDetailSchema(BaseSchema):
         description="Product ID reference (required)"
     )
 
-    order: Optional['OrderSchema'] = None
+    #order: Optional['OrderSchema'] = None
     product: Optional['ProductSchema'] = None
