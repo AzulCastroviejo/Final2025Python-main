@@ -50,10 +50,9 @@ class OrderService(BaseServiceImpl):
         ]
         
         # Use the generic find method from the repository but pass the loading options
-        model = self._repository.find(id_key, load_options=load_options)
-        
+        model = self.repository.get_one(id_key)
          # Pydantic v2 uses `from_attributes` to load from ORM models
-        return self._schema.from_attributes(model)
+        return self._schema.model_validate(model, from_attributes=True)
 
         
 
