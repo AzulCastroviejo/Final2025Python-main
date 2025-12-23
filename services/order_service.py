@@ -29,7 +29,7 @@ class OrderService(BaseServiceImpl):
         self._client_repository = ClientRepository(db)
         self._bill_repository = BillRepository(db)
         
-    def get_one(self, id_key: int) -> OrderSchema:
+    def find(self, id_key: int) -> OrderSchema:
         """
         Get a single order by its ID, including related order details and products.
 
@@ -49,11 +49,11 @@ class OrderService(BaseServiceImpl):
             selectinload(OrderModel.order_details).joinedload(OrderDetailModel.product)
         ]
         
-        # Use the generic find method from the repository but pass the loading options
-        model = self.repository.get_one(id_key)
-         # Pydantic v2 uses `from_attributes` to load from ORM models
-        return self._schema.model_validate(model, from_attributes=True)
+      
+        model = self._repository.find(id_key, load_options=load_options)
 
+        # Pydantic v2 uses `from_attributes` to load from ORM models
+        return self._schema.from_attributes(model)
         
 
 

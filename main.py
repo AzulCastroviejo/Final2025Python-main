@@ -51,6 +51,23 @@ def create_fastapi_app() -> FastAPI:
         docs_url="/docs",
         redoc_url="/redoc"
     )
+    # Request ID middleware runs FIRST (innermost) to capture all logs
+    fastapi_app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+        expose_headers=["*"],
+
+
+    )
+    logger.info(f"✅ CORS enabled for origins: {CORSMiddleware}")
+
+    # Rate limiting: 100 requests per 60 seconds per IP (configurable via env)
+    fastapi_app.add_middleware(RateLimiterMiddleware, calls=100, period=60)
+    logger.info("✅ Rate limiting enabled: 100 requests/60s per IP")
+
 
     # Global exception handlers
     @fastapi_app.exception_handler(InstanceNotFoundError)
@@ -93,23 +110,7 @@ def create_fastapi_app() -> FastAPI:
     fastapi_app.include_router(health_check_controller, prefix="/health_check")
 
     # Add middleware (LIFO order - last added runs first)
-    # Request ID middleware runs FIRST (innermost) to capture all logs
-    fastapi_app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-        expose_headers=["*"],
-
-
-    )
-    logger.info(f"✅ CORS enabled for origins: {CORSMiddleware}")
-
-    # Rate limiting: 100 requests per 60 seconds per IP (configurable via env)
-    fastapi_app.add_middleware(RateLimiterMiddleware, calls=100, period=60)
-    logger.info("✅ Rate limiting enabled: 100 requests/60s per IP")
-
+    
     # Startup event: Check Redis connection
     @fastapi_app.on_event("startup")
     async def startup_event():
