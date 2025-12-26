@@ -24,3 +24,15 @@ class ClientSchema(BaseSchema):
     )
     addresses: Optional[List['AddressSchema']] = []
     orders: Optional[List['OrderSchema']] = []
+
+
+# --- Runtime Resolution for Forward References ---
+# This is the crucial part that solves the PydanticUndefinedAnnotation error.
+# We import the schemas here, outside the TYPE_CHECKING block, so they are
+# available at runtime. Then, we explicitly tell ClientSchema how to resolve
+# the string-based forward references ('AddressSchema', 'OrderSchema').
+
+from schemas.address_schema import AddressSchema
+from schemas.order_schema import OrderSchema
+
+ClientSchema.update_forward_refs(AddressSchema=AddressSchema, OrderSchema=OrderSchema)
