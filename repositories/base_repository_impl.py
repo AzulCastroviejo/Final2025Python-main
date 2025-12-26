@@ -3,7 +3,7 @@ BaseRepository implementation with best practices and sanitized logging
 """
 import logging
 from typing import Type, List, Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import select
 
 from models.base_model import BaseModel
