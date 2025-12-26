@@ -5,6 +5,11 @@ Contains all shared enumeration types used across models and schemas.
 """
 from enum import Enum
 
+class UserRole(str, Enum):
+    """User roles"""
+    USER = "user"
+    ADMIN = "admin"
+
 
 class DeliveryMethod(str, Enum):
     """Order delivery method options"""
