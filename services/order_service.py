@@ -13,7 +13,7 @@ from repositories.base_repository_impl import InstanceNotFoundError
 from schemas.order_schema import OrderSchema
 from services.base_service_impl import BaseServiceImpl
 from utils.logging_utils import get_sanitized_logger
-#from utils.email_utils import send_order_confirmation_email
+from utils.email_utils import send_order_confirmation_email
 
 logger = get_sanitized_logger(__name__)
 
@@ -117,7 +117,6 @@ class OrderService(BaseServiceImpl):
                 order_details_dict = [
                     detail.model_dump() for detail in full_order_data.order_details
                 ]
-                
                 send_order_confirmation_email(
                     client_email=full_order_data.client.email,
                     client_name=full_order_data.client.name or "Cliente",
