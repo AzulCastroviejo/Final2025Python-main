@@ -9,7 +9,7 @@ from services.base_service_impl import BaseServiceImpl
 from services.cache_service import cache_service
 from utils.logging_utils import get_sanitized_logger
 
-logger = get_sanitized_logger(__name__)  # P11: Sanitized logging
+logger = get_sanitized_logger(__name__)
 
 
 class ProductService(BaseServiceImpl):
@@ -27,9 +27,7 @@ class ProductService(BaseServiceImpl):
 
     def get_by_category_id(self, category_id: int, skip: int = 0, limit: int = 100) -> List[ProductSchema]:
         """Get all products for a given category with caching."""
-        cache_key = self.cache.build_key(
-            self.cache_prefix, "category", category_id, skip=skip, limit=limit
-        )
+        cache_key = self.cache.build_key(self.cache_prefix, "category", category_id, skip=skip, limit=limit)
         cached_products = self.cache.get(cache_key)
 
         if cached_products is not None:
@@ -37,157 +35,81 @@ class ProductService(BaseServiceImpl):
             return [ProductSchema(**p) for p in cached_products]
 
         logger.debug(f"Cache MISS: {cache_key}")
-        # Here we need to access the repository instance created by BaseServiceImpl
         products = self._repository.find_by_category_id(category_id, skip, limit)
         
         products_dict = [p.model_dump() for p in products]
         self.cache.set(cache_key, products_dict)
 
         return products
-c
+
     def get_all(self, skip: int = 0, limit: int = 100) -> List[ProductSchema]:
-        """
-        Get all products with caching
-
-        Cache key pattern: products:list:skip:{skip}:limit:{limit}
-        TTL: 5 minutes (default REDIS_CACHE_TTL)
-        """
-        # Build cache key
-        cache_key = self.cache.build_key(
-            self.cache_prefix,
-            "list",
-            skip=skip,
-            limit=limit
-        )
-
-        # Try to get from cache
+        """Get all products with caching."""
+        cache_key = self.cache.build_key(self.cache_prefix, "list", skip=skip, limit=limit)
         cached_products = self.cache.get(cache_key)
         if cached_products is not None:
             logger.debug(f"Cache HIT: {cache_key}")
-            # Convert dict list back to ProductSchema list
             return [ProductSchema(**p) for p in cached_products]
 
-        # Cache miss - get from database
         logger.debug(f"Cache MISS: {cache_key}")
         products = super().get_all(skip, limit)
-
-        # Cache the result (convert to dict for JSON serialization)
         products_dict = [p.model_dump() for p in products]
         self.cache.set(cache_key, products_dict)
-
         return products
 
     def get_one(self, id_key: int) -> ProductSchema:
-        """
-        Get single product by ID with caching
-
-        Cache key pattern: products:id:{id_key}
-        TTL: 5 minutes
-        """
+        """Get single product by ID with caching."""
         cache_key = self.cache.build_key(self.cache_prefix, "id", id=id_key)
-
-        # Try cache first
         cached_product = self.cache.get(cache_key)
         if cached_product is not None:
             logger.debug(f"Cache HIT: {cache_key}")
             return ProductSchema(**cached_product)
 
-        # Get from database
         logger.debug(f"Cache MISS: {cache_key}")
         product = super().get_one(id_key)
-
-        # Cache the result
         self.cache.set(cache_key, product.model_dump())
-
         return product
 
     def save(self, schema: ProductSchema) -> ProductSchema:
-        """
-        Create new product and invalidate list cache
-        """
+        """Create new product and invalidate list caches."""
         product = super().save(schema)
-
-        # Invalidate list cache (all paginated lists)
-        self._invalidate_list_cache()
-
+        self._invalidate_caches()
         return product
 
     def update(self, id_key: int, schema: ProductSchema) -> ProductSchema:
-        """
-        Update product with transactional cache invalidation
-
-        Args:
-            id_key: Product ID to update
-            schema: Validated ProductSchema with new data
-
-        Returns:
-            Updated product schema
-
-        Raises:
-            InstanceNotFoundError: If product doesn't exist
-            ValueError: If validation fails
-        """
-        # Build cache keys BEFORE update (prepare for invalidation)
+        """Update product and invalidate relevant caches."""
+        product = super().update(id_key, schema)
         cache_key = self.cache.build_key(self.cache_prefix, "id", id=id_key)
-
-        try:
-            # Update in database (atomic transaction)
-            product = super().update(id_key, schema)
-
-            # Only invalidate cache AFTER successful DB commit
-            self.cache.delete(cache_key)
-            self._invalidate_list_cache()
-
-            logger.info(f"Product {id_key} updated and cache invalidated successfully")
-            return product
-
-        except Exception as e:
-            # If update fails, cache remains consistent (no invalidation)
-            logger.error(f"Failed to update product {id_key}: {e}")
-            raise
+        self.cache.delete(cache_key)
+        self._invalidate_caches()
+        return product
 
     def delete(self, id_key: int) -> None:
-        """
-        Delete product with validation to prevent loss of sales history
-
-        Raises:
-            ValueError: If product has associated order details (sales history)
-            InstanceNotFoundError: If product doesn't exist
-        """
+        """Delete product with sales history validation and cache invalidation."""
         from models.order_detail import OrderDetailModel
         from sqlalchemy import select
 
-        # Check if product has sales history
-        stmt = select(OrderDetailModel).where(
-            OrderDetailModel.product_id == id_key
-        ).limit(1)
-
-        # Get session from repository
+        stmt = select(OrderDetailModel).where(OrderDetailModel.product_id == id_key).limit(1)
         has_sales = self._repository.session.scalars(stmt).first()
 
         if has_sales:
-            logger.error(
-                f"Cannot delete product {id_key}: has associated sales history"
-            )
+            logger.error(f"Cannot delete product {id_key}: has associated sales history")
             raise ValueError(
-                f"Cannot delete product {id_key}: product has associated sales history. "
+                f"Cannot delete product {id_key}: has associated sales history. "
                 f"Consider marking as inactive instead of deleting."
             )
 
-        # Safe to delete
-        logger.info(f"Deleting product {id_key} (no sales history)")
         super().delete(id_key)
-
-        # Invalidate specific product cache
         cache_key = self.cache.build_key(self.cache_prefix, "id", id=id_key)
         self.cache.delete(cache_key)
+        self._invalidate_caches()
 
-        # Invalidate list cache
-        self._invalidate_list_cache()
-
-    def _invalidate_list_cache(self):
-        """Invalidate all product list caches"""
-        pattern = f"{self.cache_prefix}:list:*"
-        deleted_count = self.cache.delete_pattern(pattern)
-        if deleted_count > 0:
-            logger.info(f"Invalidated {deleted_count} product list cache entries")
+    def _invalidate_caches(self):
+        """Invalidate all product list and category caches."""
+        list_pattern = f"{self.cache_prefix}:list:*"
+        category_pattern = f"{self.cache_prefix}:category:*"
+        deleted_lists = self.cache.delete_pattern(list_pattern)
+        deleted_categories = self.cache.delete_pattern(category_pattern)
+        if deleted_lists > 0:
+            logger.info(f"Invalidated {deleted_lists} product list cache entries")
+        if deleted_categories > 0:
+            logger.info(f"Invalidated {deleted_categories} product category cache entries")
