@@ -45,3 +45,6 @@ pytest==7.4.3
 pytest-cov==4.1.0
 pytest-asyncio==0.21.1
 httpx==0.25.1
+
+# Form data dependency
+python-multipart==0.0.9
