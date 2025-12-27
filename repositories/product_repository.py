@@ -1,3 +1,4 @@
+from typing import List, Optional 
 """Product repository for database operations."""
 from sqlalchemy.orm import Session, joinedload
 
