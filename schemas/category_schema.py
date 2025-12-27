@@ -1,15 +1,19 @@
 """Category schema with validation."""
-from typing import Optional, List, TYPE_CHECKING
+from typing import Optional
 from pydantic import Field
-
+#, List, TYPE_CHECKING
 from schemas.base_schema import BaseSchema
 
-if TYPE_CHECKING:
-    from schemas.product_schema import ProductSchema
+#if TYPE_CHECKING:
+ #   from schemas.product_schema import ProductSchema
 
 
 class CategorySchema(BaseSchema):
-    """Schema for Category entity with validations."""
+    """Schema for Category entity with validations.
+
+    The list of products is intentionally omitted to prevent circular dependencies
+    when this schema is nested within others (e.g., in ProductSchema).
+    """
 
     name: str = Field(..., min_length=1, max_length=100, description="Category name (required, unique)")
 
@@ -17,6 +21,6 @@ class CategorySchema(BaseSchema):
     description: Optional[str] = Field(None, max_length=500, description="Category description")
 
 
-    products: Optional[List['ProductSchema']] = []
+   # products: Optional[List['ProductSchema']] = []
 
 
