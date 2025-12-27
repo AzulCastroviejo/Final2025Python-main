@@ -1,5 +1,5 @@
 """Category schema with validation."""
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from pydantic import Field
 #, List, TYPE_CHECKING
 from schemas.base_schema import BaseSchema
