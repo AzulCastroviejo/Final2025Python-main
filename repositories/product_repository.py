@@ -35,4 +35,15 @@ class ProductRepository(BaseRepositoryImpl):
         )
         if model:
             return self._schema.model_validate(model)
-        return None
+        return None      
+    def find_by_category_id(self, category_id: int, skip: int = 0, limit: int = 100) -> List[ProductSchema]:
+        """Find all products belonging to a specific category, with pagination."""
+        models = (
+            self._session.query(self._model)
+            .options(joinedload(ProductModel.category)) # Eager load category
+            .filter(self._model.category_id == category_id)
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+        return [self._schema.model_validate(model) for model in models]

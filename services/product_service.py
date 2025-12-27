@@ -26,6 +26,26 @@ class ProductService(BaseServiceImpl):
         self.cache = cache_service
         self.cache_prefix = "products"
 
+    def get_by_category_id(self, category_id: int, skip: int = 0, limit: int = 100) -> List[ProductSchema]:
+        """Get all products for a given category with caching."""
+        cache_key = self.cache.build_key(
+            self.cache_prefix, "category", category_id, skip=skip, limit=limit
+        )
+        cached_products = self.cache.get(cache_key)
+
+        if cached_products is not None:
+            logger.debug(f"Cache HIT: {cache_key}")
+            return [ProductSchema(**p) for p in cached_products]
+
+        logger.debug(f"Cache MISS: {cache_key}")
+        # Here we need to access the repository instance created by BaseServiceImpl
+        products = self._repository.find_by_category_id(category_id, skip, limit)
+        
+        products_dict = [p.model_dump() for p in products]
+        self.cache.set(cache_key, products_dict)
+
+        return products
+c
     def get_all(self, skip: int = 0, limit: int = 100) -> List[ProductSchema]:
         """
         Get all products with caching

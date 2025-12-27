@@ -3,8 +3,8 @@ from pydantic import Field
 
 from schemas.base_schema import BaseSchema
 
-if TYPE_CHECKING:
-    from schemas.product_schema import ProductSchema
+#if TYPE_CHECKING:
+#    from schemas.product_schema import ProductSchema
 
 
 class ReviewSchema(BaseSchema):

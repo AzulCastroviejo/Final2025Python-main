@@ -24,7 +24,7 @@ class ProductSchema(BaseSchema):
 
   # Relationships
     category: Optional['CategorySchema'] = None
-    reviews: Optional[List['ReviewSchema']] = []
+   # reviews: Optional[List['ReviewSchema']] = []
    # order_details: Optional[List['OrderDetailSchema']] = []
 
 
