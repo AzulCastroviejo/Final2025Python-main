@@ -35,4 +35,5 @@ class ClientSchema(BaseSchema):
 from schemas.address_schema import AddressSchema
 from schemas.order_schema import OrderSchema
 
-ClientSchema.update_forward_refs(AddressSchema=AddressSchema, OrderSchema=OrderSchema)
+#ClientSchema.update_forward_refs(AddressSchema=AddressSchema, OrderSchema=OrderSchema)
+ClientSchema.model_rebuild()
