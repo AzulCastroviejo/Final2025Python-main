@@ -24,5 +24,6 @@ class ClientSchema(BaseSchema):
     )
     addresses: Optional[List['AddressSchema']] = []
     orders: Optional[List['OrderSchema']] = []
+    password: Optional[str] = Field(None, min_length=8, write_only=True, description="User password (only for registration, never returned)")
 
 

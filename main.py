@@ -33,7 +33,7 @@ from controllers.product_controller import ProductController
 from controllers.review_controller import ReviewController
 from controllers.health_check import router as health_check_controller
 from repositories.base_repository_impl import InstanceNotFoundError
-from controllers import auth_controller 
+from controllers.auth_controller import auth_controller
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 from config.database import get_db
@@ -85,7 +85,8 @@ def create_fastapi_app() -> FastAPI:
     def root():
         return {"status": "ok", "message": "API funcionando correctamente 🚀"}
 
-    fastapi_app.include_router(auth_controller.router) # Add the auth router
+  
+    fastapi_app.include_router(auth_controller.router, prefix="/auth")
     client_controller = ClientController()
     fastapi_app.include_router(client_controller.router, prefix="/clients")
 

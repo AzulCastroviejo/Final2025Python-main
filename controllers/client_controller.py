@@ -1,31 +1,20 @@
-"""Client controller with proper dependency injection."""
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+"""Client controller with protected /me endpoint and cleaned up routes."""
+from fastapi import Depends
+
 from controllers.base_controller_impl import BaseControllerImpl
+from models.client import ClientModel
 from schemas.client_schema import ClientSchema
+from services.auth_service import get_current_user
 from services.client_service import ClientService
-from  config.database import get_db
 
-
-
-client_extra_router = APIRouter(prefix="/clients", tags=["Clients"])
-
-@client_extra_router.get("/login")
-def client_login(email: str, password: str, db: Session = Depends(get_db)):
-    service = ClientService(db)
-    user = service.login(email, password)
-    if not user:
-        return None
-    return user
 
 class ClientController(BaseControllerImpl):
-    """Controller for Client entity with CRUD operations."""
+    """Controller for Client entity with a protected /me endpoint."""
 
     def __init__(self):
         """
-        Initialize ClientController with dependency injection.
-
-        The service is created per request with the database session.
+        Initializes the controller, adds the /me route, and removes the now-obsolete
+        and insecure client_login functionality.
         """
         super().__init__(
             schema=ClientSchema,
@@ -33,3 +22,16 @@ class ClientController(BaseControllerImpl):
             tags=["Clients"]
         )
 
+        self._add_me_route()
+
+    def _add_me_route(self):
+        """
+        Adds the `GET /me` endpoint to retrieve the current user's profile.
+        """
+        @self.router.get("/me", response_model=self.schema)
+        async def get_me(current_user: ClientModel = Depends(get_current_user)):
+            """
+            Returns the profile of the currently authenticated user.
+            The user is identified via the JWT token in the Authorization header.
+            """
+            return current_user

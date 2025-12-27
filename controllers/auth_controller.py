@@ -1,81 +1,47 @@
-"""
-Authentication Controller Module
-
-This module provides the API endpoints for user registration and login.
-It handles creating new users and issuing JWT access tokens.
-"""
-
-from fastapi import APIRouter, Depends, HTTPException, status
+"""Controller for handling user authentication and token generation."""
+from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
 
-from schemas.auth_schema import UserCreate, Token
-from schemas.client_schema import ClientSchema
-from services import auth_service
-from models.client import ClientModel
-from models.enums import UserRole
-from config.database import get_db
+from schemas.token_schema import TokenSchema
+from services.auth_service import AuthService
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-ADMIN_EMAIL = "azulcastroviejo@gmail.com"
-
-@router.post("/register", response_model=ClientSchema, status_code=status.HTTP_201_CREATED)
-def register_user(user_create: UserCreate, db: Session = Depends(get_db)):
+class AuthController:
     """
-    Register a new user.
-
-    - Hashes the password before storing.
-    - Checks for existing user with the same email.
-    - Assigns ADMIN role if the email matches the admin email.
+    Exposes the /token endpoint for user authentication.
     """
-    db_user = auth_service.get_user(db, email=user_create.email)
-    if db_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered",
+
+    def __init__(self):
+        """Initializes the router and defines the authentication route."""
+        self.router = APIRouter(
+            tags=["Authentication"],
+            prefix="/auth"
         )
-    
-    hashed_password = auth_service.get_password_hash(user_create.password)
-    
-       # Assign role based on email
-    user_role = UserRole.ADMIN if user_create.email.lower() == ADMIN_EMAIL else UserRole.USER
-    
-    # Create the new user model
-    new_user = ClientModel(
-        email=user_create.email,
-        hashed_password=hashed_password,
-        name=user_create.name,
-        lastname=user_create.lastname,
-        role=user_role 
-        )
-    
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    
-    return new_user
+        self._register_routes()
 
+    def _register_routes(self):
+        """
+        Registers the login endpoint.
+        """
+        @self.router.post("/token", response_model=TokenSchema)
+        async def login_for_access_token(
+            form_data: OAuth2PasswordRequestForm = Depends(),
+            auth_service: AuthService = Depends(AuthService)
+        ):
+            """
+            Handles the POST request to /token to authenticate a user.
 
-@router.post("/login", response_model=Token)
-def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    """
-    Log in a user and return a JWT access token.
+            It uses FastAPI's `OAuth2PasswordRequestForm` which expects a form-data
+            body with `username` and `password` fields.
 
-    - Authenticates the user with email and password.
-    - Returns an access token on success.
-    """
-    user = auth_service.get_user(db, email=form_data.username) # OAuth2 form uses 'username' for the email
-    
-    if not user or not auth_service.verify_password(form_data.password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    access_token = auth_service.create_access_token(
-        data={"sub": user.email, "role": str(user.role.value)}
-    )
-    
-    return {"access_token": access_token, "token_type": "bearer"}
+            Args:
+                form_data: The user's credentials (username and password).
+                auth_service: The authentication service, injected as a dependency.
+
+            Returns:
+                An access token and token type.
+            """
+            return auth_service.login_for_access_token(form_data)
+
+# Single instance of the controller to be used in the main application
+auth_controller = AuthController()
