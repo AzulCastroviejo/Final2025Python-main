@@ -1,6 +1,5 @@
 """Product service with Redis caching integration and sanitized logging."""
-import logging
-from typing import List, Optional
+from typing import List
 from sqlalchemy.orm import Session
 
 from models.product import ProductModel
