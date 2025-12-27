@@ -22,4 +22,11 @@ class ProductSchema(BaseSchema):
 
     category_id: int = Field(..., description="Category ID reference (required)")
 
+  # Relationships
+    category: Optional['CategorySchema'] = None
+    reviews: Optional[List['ReviewSchema']] = []
+    order_details: Optional[List['OrderDetailSchema']] = []
+
+
+
 

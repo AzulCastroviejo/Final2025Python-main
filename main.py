@@ -21,6 +21,8 @@ from middleware.request_id_middleware import RequestIDMiddleware
 # Setup centralized logging FIRST
 setup_logging()
 logger = logging.getLogger(__name__)
+import schemas
+
 from controllers.address_controller import AddressController
 from controllers.bill_controller import BillController
 from controllers.category_controller import CategoryController

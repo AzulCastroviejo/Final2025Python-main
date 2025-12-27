@@ -18,3 +18,5 @@ class CategorySchema(BaseSchema):
 
 
     products: Optional[List['ProductSchema']] = []
+
+
