@@ -2,7 +2,7 @@
 from sqlalchemy.orm import Session
 from models.client import ClientModel
 from repositories.client_repository import ClientRepository
-from schemas.client_schema import ClientSchema
+from schemas.client_schema import ClientSchema, ClientCreateSchema # Import the new schema
 from services.base_service_impl import BaseServiceImpl
 from utils.logging_utils import get_sanitized_logger
 from utils.security import get_password_hash
@@ -21,15 +21,16 @@ class ClientService(BaseServiceImpl):
             db=db
         )
 
-    def save(self, schema: ClientSchema) -> ClientSchema:
+    # The method now correctly type-hints the input with ClientCreateSchema
+    def save(self, schema: ClientCreateSchema) -> ClientSchema:
         """
         Creates a new client after validating and hashing the password.
 
         Args:
-            schema: The client registration data, including a plain-text password.
+            schema: The client registration data (ClientCreateSchema), including a plain-text password.
 
         Returns:
-            The newly created client schema (without the password).
+            The newly created client schema (ClientSchema) without the password.
 
         Raises:
             ValueError: If the email already exists.
@@ -54,4 +55,5 @@ class ClientService(BaseServiceImpl):
         saved_model = repo.save(new_client_model)
 
         # Convert the saved model back to a schema for the response
-        return self.to_schema(saved_model)
+        # The response will use ClientSchema, which excludes the password field
+        return self.schema.model_validate(saved_model)
