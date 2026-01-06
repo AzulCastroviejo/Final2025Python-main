@@ -15,7 +15,7 @@ class AuthController:
         """Initializes the router and defines the authentication route."""
         self.router = APIRouter(
             tags=["Authentication"],
-            prefix="/auth"
+            
         )
         self._register_routes()
 
