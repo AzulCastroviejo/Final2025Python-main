@@ -49,5 +49,12 @@ class ClientController(BaseControllerImpl):
             try:
                 # Pass the create schema to the service
                 return service.save(schema_in)
-            except ValueError as e:
-                raise HTTPException(status_code=409, detail=str(e))
+            except ValueError:
+                # If the user already exists, return a 409 Conflict with a more helpful error message.
+                # This helps the frontend to suggest logging in or redirecting.
+                detail_message = {
+                    "msg": f"El correo electrónico '{schema_in.email}' ya está registrado.",
+                    "suggestion": "Por favor, intenta iniciar sesión.",
+                    "login_url": "/token"
+                }
+                raise HTTPException(status_code=409, detail=detail_message)
