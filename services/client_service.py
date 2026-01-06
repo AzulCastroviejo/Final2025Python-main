@@ -25,8 +25,6 @@ class ClientService(BaseServiceImpl):
         """
         Creates a new client after validating and hashing the password.
 
-        If a client with the same email already exists, it raises an error.
-
         Args:
             schema: The client registration data, including a plain-text password.
 
@@ -34,34 +32,26 @@ class ClientService(BaseServiceImpl):
             The newly created client schema (without the password).
 
         Raises:
-            ValueError: If the email already exists or if the password is not provided.
+            ValueError: If the email already exists.
         """
-        if not schema.email:
-            logger.error("Email is required to create a client.")
-            raise ValueError("Email is required to create a client.")
-
         repo: ClientRepository = self._repository
         existing_client = repo.find_by_email(schema.email)
 
         if existing_client:
             logger.warning(f"Registration attempt for existing email: {schema.email}")
             raise ValueError(f"A client with email {schema.email} already exists.")
-        
-       
+
         logger.info(f"Creating a new client with email: {schema.email}")
 
-        # Convert schema to dict, excluding the password field which is write-only
+        # Convert schema to dict, excluding the password
         client_data = schema.model_dump(exclude={"password"})
 
         # Hash the password and create the model instance
-        if schema.password:
-            hashed_password = get_password_hash(schema.password)
-            new_client_model = self._model(**client_data, hashed_password=hashed_password)
-        else:
-            new_client_model = self._model(**client_data)
+        hashed_password = get_password_hash(schema.password)
+        new_client_model = self._model(**client_data, hashed_password=hashed_password)
 
         # Save the new model using the repository
         saved_model = repo.save(new_client_model)
-        
+
         # Convert the saved model back to a schema for the response
         return self.to_schema(saved_model)

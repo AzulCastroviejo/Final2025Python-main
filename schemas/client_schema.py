@@ -1,20 +1,15 @@
 """Client schema for request/response validation."""
-from typing import Optional, List, TYPE_CHECKING
+from typing import Optional
 from pydantic import EmailStr, Field
 
 from schemas.base_schema import BaseSchema
 
-if TYPE_CHECKING:
-    from schemas.address_schema import AddressSchema
-    from schemas.order_schema import OrderSchema
-
-
 class ClientSchema(BaseSchema):
     """Schema for Client entity with validations."""
 
-    name: Optional[str] = Field(None, min_length=1, max_length=100, description="Client's first name")
-    lastname: Optional[str] = Field(None, min_length=1, max_length=100, description="Client's last name")
-    email: Optional[EmailStr] = Field(None, description="Client's email address")
+    name: str = Field(..., min_length=1, max_length=100, description="Client's first name")
+    lastname: str = Field(..., min_length=1, max_length=100, description="Client's last name")
+    email: EmailStr = Field(..., description="Client's email address")
     telephone: Optional[str] = Field(
         None,
         min_length=7,
@@ -22,8 +17,4 @@ class ClientSchema(BaseSchema):
         pattern=r'^\+?[1-9]\d{6,19}$',
         description="Client's phone number (7-20 digits, optional + prefix)"
     )
-    addresses: Optional[List['AddressSchema']] = []
-    orders: Optional[List['OrderSchema']] = []
-    password: Optional[str] = Field(None, min_length=8, write_only=True, description="User password (only for registration, never returned)")
-
-
+    password: str = Field(..., min_length=8, description="User password (at least 8 characters)")
