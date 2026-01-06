@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette import status
 from starlette.responses import JSONResponse
-
+from contextlib import asynccontextmanager
 from config.logging_config import setup_logging
 from config.database import create_tables, engine
 from config.redis_config import redis_config, check_redis_connection
