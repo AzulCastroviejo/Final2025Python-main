@@ -47,18 +47,18 @@ class ClientService(BaseServiceImpl):
             logger.warning(f"Registration attempt for existing email: {schema.email}")
             raise ValueError(f"A client with email {schema.email} already exists.")
         
-        if not schema.password:
-            logger.error("Password is required for new client registration.")
-            raise ValueError("Password is required for new client registration.")
-
+       
         logger.info(f"Creating a new client with email: {schema.email}")
 
         # Convert schema to dict, excluding the password field which is write-only
         client_data = schema.model_dump(exclude={"password"})
 
         # Hash the password and create the model instance
-        hashed_password = get_password_hash(schema.password)
-        new_client_model = self._model(**client_data, hashed_password=hashed_password)
+        if schema.password:
+            hashed_password = get_password_hash(schema.password)
+            new_client_model = self._model(**client_data, hashed_password=hashed_password)
+        else:
+            new_client_model = self._model(**client_data)
 
         # Save the new model using the repository
         saved_model = repo.save(new_client_model)
