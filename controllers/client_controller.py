@@ -1,5 +1,5 @@
 """Client controller with protected /me endpoint and cleaned up routes."""
-from fastapi import Depends
+from fastapi import Depends , HTTPException
 
 from controllers.base_controller_impl import BaseControllerImpl
 from models.client import ClientModel
@@ -7,6 +7,7 @@ from schemas.client_schema import ClientSchema
 from services.auth_service import get_current_user
 from services.client_service import ClientService
 
+from config.database import get_db
 
 class ClientController(BaseControllerImpl):
     """Controller for Client entity with a protected /me endpoint."""
@@ -22,7 +23,7 @@ class ClientController(BaseControllerImpl):
             tags=["Clients"]
         )
 
-        self._add_me_route()
+        self._add_create_route()
 
     def _add_me_route(self):
         """
@@ -35,3 +36,13 @@ class ClientController(BaseControllerImpl):
             The user is identified via the JWT token in the Authorization header.
             """
             return current_user
+        
+        
+    def _add_create_route(self):
+        @self.router.post("/", response_model=self.schema, status_code=201)
+        def create(self, schema_in: self.schema, db: Session = Depends(get_db)):
+            service = self.service_factory(db)
+            try:
+                return service.save(schema_in)
+            except ValueError as e:
+                raise HTTPException(status_code=409, detail=str(e))
