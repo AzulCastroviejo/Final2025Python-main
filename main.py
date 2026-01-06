@@ -38,6 +38,43 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 from config.database import get_db
 
+PRODUCTION_ORIGIN = "https://final2025-front-qqzp199dj-azuls-projects-bab8fcbf.vercel.app"
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Application lifespan manager.
+
+    Handles startup and shutdown events.
+    """
+    logger.info("🚀 Starting FastAPI E-commerce API...")
+
+    # Check Redis connection
+    if check_redis_connection():
+        logger.info("✅ Redis cache is available")
+    else:
+        logger.warning("⚠️  Redis cache is NOT available - running without cache")
+    
+    yield
+    
+    logger.info("👋 Shutting down FastAPI E-commerce API...")
+
+    # Close Redis connection
+    try:
+        redis_config.close()
+        logger.info("✅ Redis connection closed")
+    except Exception as e:
+        logger.error(f"❌ Error closing Redis: {e}")
+
+    # Close database engine
+    try:
+        engine.dispose()
+        logger.info("✅ Database engine disposed")
+    except Exception as e:
+        logger.error(f"❌ Error disposing database engine: {e}")
+
+    logger.info("✅ Shutdown complete")
+    
 def create_fastapi_app() -> FastAPI:
     """
     Create and configure the FastAPI application.
@@ -116,40 +153,8 @@ def create_fastapi_app() -> FastAPI:
 
     # Add middleware (LIFO order - last added runs first)
     
-    # Startup event: Check Redis connection
-    @fastapi_app.on_event("startup")
-    async def startup_event():
-        """Run on application startup"""
-        logger.info("🚀 Starting FastAPI E-commerce API...")
-
-        # Check Redis connection
-        if check_redis_connection():
-            logger.info("✅ Redis cache is available")
-        else:
-            logger.warning("⚠️  Redis cache is NOT available - running without cache")
-
-    # Shutdown event: Graceful shutdown
-    @fastapi_app.on_event("shutdown")
-    async def shutdown_event():
-        """Graceful shutdown - close all connections"""
-        logger.info("👋 Shutting down FastAPI E-commerce API...")
-
-        # Close Redis connection
-        try:
-            redis_config.close()
-            logger.info("✅ Redis connection closed")
-        except Exception as e:
-            logger.error(f"❌ Error closing Redis: {e}")
-
-        # Close database engine
-        try:
-            engine.dispose()
-            logger.info("✅ Database engine disposed")
-        except Exception as e:
-            logger.error(f"❌ Error disposing database engine: {e}")
-
-        logger.info("✅ Shutdown complete")
-
+    
+      
     return fastapi_app
 
 
