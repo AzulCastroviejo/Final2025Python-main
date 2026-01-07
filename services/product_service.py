@@ -27,7 +27,7 @@ class ProductService(BaseServiceImpl):
         self.cache = cache_service
         self.cache_prefix = "products"
 
-    def get_products_by_category(self, category_id: int, skip: int = 0, limit: int = 100) -> List[ProductSchema]:
+    def get_by_category_id(self, category_id: int, skip: int = 0, limit: int = 100) -> List[ProductSchema]:
         """Get all products for a given category with caching."""
         cache_key = self.cache.build_key(self.cache_prefix, "category", category_id, skip=skip, limit=limit)
         cached_products = self.cache.get(cache_key)
