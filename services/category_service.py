@@ -60,24 +60,29 @@ class CategoryService(BaseServiceImpl):
 
     def get_one(self, id_key: int) -> CategorySchema:
         """
-        Get single category by ID with caching
+        Get single category by ID with caching.
 
-        Cache key pattern: categories:id:{id_key}
-        TTL: 1 hour
+        This method handles the conversion from a SQLAlchemy model to a Pydantic
+        schema before caching and returning the data.
         """
         cache_key = self.cache.build_key(self.cache_prefix, "id", id=id_key)
 
         cached_category = self.cache.get(cache_key)
-        if cached_category is not None:
+        if cached_category:
             logger.debug(f"Cache HIT: {cache_key}")
-            return CategorySchema(**cached_category)
+            return self.schema(**cached_category)
 
         logger.debug(f"Cache MISS: {cache_key}")
-        category = super().get_one(id_key)
+        # super().get_one() returns a model instance, so we handle it here.
+        category_model = super().get_one(id_key)
+        
+        # Convert the model to a schema to match the return type and allow .model_dump()
+        category_schema = self.schema.from_attributes(category_model)
 
-        self.cache.set(cache_key, category.model_dump(), ttl=self.cache_ttl)
+        # Now we can safely call model_dump() on the schema instance
+        self.cache.set(cache_key, category_schema.model_dump(), ttl=self.cache_ttl)
 
-        return category
+        return category_schema
 
     def save(self, schema: CategorySchema) -> CategorySchema:
         """Create new category and invalidate cache"""
