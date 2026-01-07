@@ -59,19 +59,22 @@ class ProductService(BaseServiceImpl):
         self.cache.set(cache_key, products_dict)
         return products
 
-    def get_one(self, id_key: int) -> ProductSchema:
-        """Get single product by ID with caching."""
-        cache_key = self.cache.build_key(self.cache_prefix, "id", id=id_key)
-        cached_product = self.cache.get(cache_key)
-        if cached_product is not None:
-            logger.debug(f"Cache HIT: {cache_key}")
-            return ProductSchema(**cached_product)
+    def get_one(self, id_key: int):
+        product = self.repository.get_one(id_key)
 
-        logger.debug(f"Cache MISS: {cache_key}")
-        product = super().get_one(id_key)
-        self.cache.set(cache_key, product.model_dump())
+        if not product:
+            return None
+
+        product_schema = ProductSchema.model_validate(product)
+
+        self.cache.set(
+            f"product:{id_key}",
+            product_schema.model_dump()
+        )
+
         return product
-
+    
+    
     def save(self, schema: ProductSchema) -> ProductSchema:
         """Create new product and invalidate list caches."""
         product = super().save(schema)
