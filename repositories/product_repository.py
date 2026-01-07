@@ -1,11 +1,11 @@
 from typing import List, Optional 
 """Product repository for database operations."""
 from sqlalchemy.orm import Session, joinedload
-
+from sqlalchemy import select
 from models.product import ProductModel
 from repositories.base_repository_impl import BaseRepositoryImpl
 from schemas.product_schema import ProductSchema
-
+from sqlalchemy.orm import Session
 
 
 class ProductRepository(BaseRepositoryImpl):
