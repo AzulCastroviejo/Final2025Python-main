@@ -60,8 +60,8 @@ class ProductService(BaseServiceImpl):
         return products
 
     def get_one(self, id_key: int):
-        product = self.repository.get_one(id_key)
-
+        
+        product = self.repository.find_by_id(id_key)
         if not product:
             return None
 
