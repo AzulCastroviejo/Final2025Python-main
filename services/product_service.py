@@ -15,6 +15,8 @@ logger = get_sanitized_logger(__name__)
 
 
 class ProductService(BaseServiceImpl):
+    """Service for Product entity with caching."""
+
     def __init__(self, db: Session):
         super().__init__(
             repository_class=ProductRepository,
@@ -25,40 +27,52 @@ class ProductService(BaseServiceImpl):
         self.cache = cache_service
         self.cache_prefix = "products"
 
-    def get_by_category_id(self, category_id: int, skip=0, limit=100):
-        cache_key = self.cache.build_key(
-            self.cache_prefix, "category", category_id, skip=skip, limit=limit
-        )
+    def get_by_category_id(self, category_id: int, skip: int = 0, limit: int = 100) -> List[ProductSchema]:
+        """Get all products for a given category with caching."""
+        cache_key = self.cache.build_key(self.cache_prefix, "category", category_id, skip=skip, limit=limit)
+        cached_products = self.cache.get(cache_key)
 
-        cached = self.cache.get(cache_key)
-        if cached:
-            return [ProductSchema(**p) for p in cached]
+        if cached_products is not None:
+            logger.debug(f"Cache HIT: {cache_key}")
+            return [ProductSchema(**p) for p in cached_products]
 
-        models = self.repository.get_products_by_category(category_id, skip, limit)
-        schemas = [ProductSchema.model_validate(m) for m in models]
+        logger.debug(f"Cache MISS: {cache_key}")
+        # Corrected to call the right repository method
+        products = self.repository.get_products_by_category(category_id, skip, limit)
+        
+        products_dict = [p.model_dump() for p in products]
+        self.cache.set(cache_key, products_dict)
 
-        self.cache.set(cache_key, [s.model_dump() for s in schemas])
-        return schemas
+        return products
 
-    def get_all(self, skip=0, limit=100):
-        models = self.repository.get_all(skip, limit)
-        return [ProductSchema.model_validate(m) for m in models]
+    def get_all(self, skip: int = 0, limit: int = 100) -> List[ProductSchema]:
+        """Get all products with caching."""
+        cache_key = self.cache.build_key(self.cache_prefix, "list", skip=skip, limit=limit)
+        cached_products = self.cache.get(cache_key)
+        if cached_products is not None:
+            logger.debug(f"Cache HIT: {cache_key}")
+            return [ProductSchema(**p) for p in cached_products]
+
+        logger.debug(f"Cache MISS: {cache_key}")
+        products = super().get_all(skip, limit)
+        products_dict = [p.model_dump() for p in products]
+        self.cache.set(cache_key, products_dict)
+        return products
 
     def get_one(self, id_key: int):
-        cache_key = f"{self.cache_prefix}:id:{id_key}"
-        cached = self.cache.get(cache_key)
+        product = self.repository.get_one(id_key)
 
-        if cached:
-            return ProductSchema(**cached)
-
-        model = self.repository.get_one(id_key)
-        if not model:
+        if not product:
             return None
 
-        schema = ProductSchema.model_validate(model)
-        self.cache.set(cache_key, schema.model_dump())
-        return schema
+        product_schema = ProductSchema.model_validate(product)
 
+        self.cache.set(
+            f"product:{id_key}",
+            product_schema.model_dump()
+        )
+
+        return product
     
     
     def save(self, schema: ProductSchema) -> ProductSchema:
