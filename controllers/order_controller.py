@@ -49,7 +49,7 @@ class OrderController(BaseControllerImpl):
             service = self.service_factory(db)
             
             # Associate the order with the logged-in user
-            order_data.client_id_key = current_user.id_key
+            order_data.client_id = current_user.id_key
 
             # Save the order
             return service.save(order_data)
