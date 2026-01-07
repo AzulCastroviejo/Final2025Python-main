@@ -1,7 +1,9 @@
 """Product service with Redis caching integration and sanitized logging."""
 from typing import List
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 
+from models.order_detail import OrderDetailModel
 from models.product import ProductModel
 from repositories.product_repository import ProductRepository
 from schemas.product_schema import ProductSchema
@@ -25,7 +27,7 @@ class ProductService(BaseServiceImpl):
         self.cache = cache_service
         self.cache_prefix = "products"
 
-    def get_by_category_id(self, category_id: int, skip: int = 0, limit: int = 100) -> List[ProductSchema]:
+    def get_products_by_category(self, category_id: int, skip: int = 0, limit: int = 100) -> List[ProductSchema]:
         """Get all products for a given category with caching."""
         cache_key = self.cache.build_key(self.cache_prefix, "category", category_id, skip=skip, limit=limit)
         cached_products = self.cache.get(cache_key)
@@ -35,7 +37,8 @@ class ProductService(BaseServiceImpl):
             return [ProductSchema(**p) for p in cached_products]
 
         logger.debug(f"Cache MISS: {cache_key}")
-        products = self._repository.find_by_category_id(category_id, skip, limit)
+        # Corrected to call the right repository method
+        products = self.repository.get_products_by_category(category_id, skip, limit)
         
         products_dict = [p.model_dump() for p in products]
         self.cache.set(cache_key, products_dict)
@@ -85,11 +88,8 @@ class ProductService(BaseServiceImpl):
 
     def delete(self, id_key: int) -> None:
         """Delete product with sales history validation and cache invalidation."""
-        from models.order_detail import OrderDetailModel
-        from sqlalchemy import select
-
         stmt = select(OrderDetailModel).where(OrderDetailModel.product_id == id_key).limit(1)
-        has_sales = self._repository.session.scalars(stmt).first()
+        has_sales = self.repository.session.scalars(stmt).first()
 
         if has_sales:
             logger.error(f"Cannot delete product {id_key}: has associated sales history")
