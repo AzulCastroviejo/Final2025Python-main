@@ -48,3 +48,19 @@ class ProductRepository(BaseRepositoryImpl):
             .all()
         )
         return [self._schema.model_validate(model) for model in models]
+
+    def get_products_by_category(self, category_id: int, skip: int, limit: int) -> List[ProductSchema]:
+        """
+        Finds all products belonging to a specific category with pagination.
+        It also eager-loads the category to prevent N+1 queries.
+        """
+        stmt = (
+            select(self.model)
+            .options(joinedload(self.model.category))
+            .where(self.model.category_id == category_id)
+            .offset(skip)
+            .limit(limit)
+        )
+        models = self.session.scalars(stmt).all()
+        return [self.schema.model_validate(model) for model in models]
+
