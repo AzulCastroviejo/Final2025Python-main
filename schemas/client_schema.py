@@ -1,6 +1,7 @@
 """Client schema for request/response validation."""
 from typing import Optional
 from pydantic import EmailStr, Field, field_validator
+from models.enums import UserRole
 
 from schemas.base_schema import BaseSchema
 
@@ -18,6 +19,7 @@ class ClientSchema(BaseSchema):
         pattern=r'^\+?[1-9]\d{6,19}$',
         description="Client's phone number (7-20 digits, optional + prefix)"
     )
+    role: UserRole  
     # Password is made optional and excluded from the response by default.
     password: Optional[str] = Field(default=None, exclude=True)
 
