@@ -23,7 +23,7 @@ class OrderController(BaseControllerImpl):
             service_factory=lambda db: OrderService(db),
             tags=["Orders"]
         )
-
+        self._add_get_my_orders_route()
         # Remove the automatically generated POST route
         self.router.routes = [route for route in self.router.routes if route.path != "/" or "POST" not in route.methods]
 
@@ -53,3 +53,12 @@ class OrderController(BaseControllerImpl):
 
             # Save the order
             return service.save(order_data)
+
+    def _add_get_my_orders_route(self):
+        @self.router.get("/me", response_model=list[self.schema])
+        def get_my_orders(
+            db: Session = Depends(get_db),
+            current_user: ClientModel = Depends(get_current_user)
+        ):
+            service = self.service_factory(db)
+            return service.get_orders_by_client(current_user.id_key)
